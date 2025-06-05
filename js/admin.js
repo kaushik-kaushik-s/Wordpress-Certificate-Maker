@@ -6,7 +6,7 @@ jQuery(document).ready(function($) {
 
     // Initialize the canvas with a default size
     $('.ks-builder-canvas').css({
-        'width': '794px',  // A4 width in pixels at 96dpi
+        'width': '794px',   // A4 width in pixels at 96dpi
         'height': '1123px', // A4 height in pixels at 96dpi
         'margin': '0 auto',
         'background': 'white',
@@ -40,11 +40,11 @@ jQuery(document).ready(function($) {
                 let offset = $(this).offset();
                 let x = event.pageX - offset.left - $(this).scrollLeft();
                 let y = event.pageY - offset.top - $(this).scrollTop();
-                
+
                 // Adjust for scroll position
                 x = x - $(window).scrollLeft();
                 y = y - $(window).scrollTop();
-                
+
                 addElementToCanvas(elementType, x, y);
             }
         }
@@ -63,7 +63,7 @@ jQuery(document).ready(function($) {
         elementCounter++;
         let elementId = 'element-' + elementCounter;
         let elementHtml = '';
-        
+
         // Default dimensions for elements
         const defaultDimensions = {
             text: { width: 200, height: 40 },
@@ -72,69 +72,73 @@ jQuery(document).ready(function($) {
             date: { width: 150, height: 30 },
             qr: { width: 100, height: 100 }
         };
-        
+
         const dims = defaultDimensions[type] || { width: 100, height: 50 };
 
-        switch(type) {
+        switch (type) {
             case 'text':
                 elementHtml = `
-                <div class="canvas-element text-element" id="${elementId}" data-type="text">
-                    <span class="element-content">Sample Text</span>
-                    <div class="element-controls">
-                        <button class="edit-btn" title="Edit">✏️</button>
-                        <button class="delete-btn" title="Delete">🗑️</button>
-                    </div>
-                    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
-                </div>`;
+<div class="canvas-element text-element" id="${elementId}" data-type="text">
+    <span class="element-content">Sample Text</span>
+    <div class="element-controls">
+        <button class="edit-btn" title="Edit">✏️</button>
+        <button class="delete-btn" title="Delete">🗑️</button>
+    </div>
+    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
+</div>`;
                 break;
+
             case 'image':
                 elementHtml = `
-                <div class="canvas-element image-element" id="${elementId}" data-type="image">
-                    <img src="https://via.placeholder.com/${dims.width}x${dims.height}" alt="Image" class="element-content">
-                    <div class="element-controls">
-                        <button class="edit-btn" title="Edit">✏️</button>
-                        <button class="delete-btn" title="Delete">🗑️</button>
-                    </div>
-                    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
-                </div>`;
+<div class="canvas-element image-element" id="${elementId}" data-type="image">
+    <img src="https://via.placeholder.com/${dims.width}x${dims.height}" alt="Image" class="element-content">
+    <div class="element-controls">
+        <button class="edit-btn" title="Edit">✏️</button>
+        <button class="delete-btn" title="Delete">🗑️</button>
+    </div>
+    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
+</div>`;
                 break;
+
             case 'signature':
                 elementHtml = `
-                <div class="canvas-element signature-element" id="${elementId}" data-type="signature">
-                    <span class="element-content">{{signature}}</span>
-                    <div class="element-controls">
-                        <button class="edit-btn" title="Edit">✏️</button>
-                        <button class="delete-btn" title="Delete">🗑️</button>
-                    </div>
-                    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
-                </div>`;
+<div class="canvas-element signature-element" id="${elementId}" data-type="signature">
+    <span class="element-content">{{signature}}</span>
+    <div class="element-controls">
+        <button class="edit-btn" title="Edit">✏️</button>
+        <button class="delete-btn" title="Delete">🗑️</button>
+    </div>
+    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
+</div>`;
                 break;
+
             case 'date':
                 elementHtml = `
-                <div class="canvas-element date-element" id="${elementId}" data-type="date">
-                    <span class="element-content">{{issue_date}}</span>
-                    <div class="element-controls">
-                        <button class="edit-btn" title="Edit">✏️</button>
-                        <button class="delete-btn" title="Delete">🗑️</button>
-                    </div>
-                    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
-                </div>`;
+<div class="canvas-element date-element" id="${elementId}" data-type="date">
+    <span class="element-content">{{issue_date}}</span>
+    <div class="element-controls">
+        <button class="edit-btn" title="Edit">✏️</button>
+        <button class="delete-btn" title="Delete">🗑️</button>
+    </div>
+    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
+</div>`;
                 break;
+
             case 'qr':
                 elementHtml = `
-                <div class="canvas-element qr-element" id="${elementId}" data-type="qr">
-                    <div class="element-content qr-placeholder">QR Code</div>
-                    <div class="element-controls">
-                        <button class="edit-btn" title="Edit">✏️</button>
-                        <button class="delete-btn" title="Delete">🗑️</button>
-                    </div>
-                    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
-                </div>`;
+<div class="canvas-element qr-element" id="${elementId}" data-type="qr">
+    <div class="element-content qr-placeholder">QR Code</div>
+    <div class="element-controls">
+        <button class="edit-btn" title="Edit">✏️</button>
+        <button class="delete-btn" title="Delete">🗑️</button>
+    </div>
+    <div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se"></div>
+</div>`;
                 break;
         }
 
         let $element = $(elementHtml);
-        
+
         // Set initial position and size
         $element.css({
             'position': 'absolute',
@@ -168,7 +172,7 @@ jQuery(document).ready(function($) {
 
         // Make element resizable with aspect ratio for images and QR codes
         const aspectRatio = (type === 'image' || type === 'qr') ? dims.width / dims.height : false;
-        
+
         $element.resizable({
             handles: 'se, sw, ne, nw',
             aspectRatio: aspectRatio,
@@ -185,11 +189,10 @@ jQuery(document).ready(function($) {
             e.stopPropagation();
             selectElement($(this));
         });
-        
+
         // Select the newly added element
         selectElement($element);
     }
-
 
     // Save element position to data attributes
     function saveElementPosition($element) {
@@ -206,56 +209,56 @@ jQuery(document).ready(function($) {
         $element.addClass('selected');
         selectedElement = $element;
         showElementProperties($element);
-        
+
         // Save position when selected (in case it was moved programmatically)
         saveElementPosition($element);
     }
-
 
     // Show element properties
     function showElementProperties($element) {
         let type = $element.data('type');
         let propertiesHtml = '';
 
-        switch(type) {
+        switch (type) {
             case 'text':
                 propertiesHtml = `
-                    <h4>Text Properties</h4>
-                    <label>Text Content:</label>
-                    <input type="text" id="text-content" value="${$element.find('.element-content').text()}">
-                    <label>Font Size:</label>
-                    <input type="number" id="font-size" value="16" min="8" max="72">
-                    <label>Font Color:</label>
-                    <input type="color" id="font-color" value="#000000">
-                    <label>Font Family:</label>
-                    <select id="font-family">
-                        <option value="Arial">Arial</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Georgia">Georgia</option>
-                    </select>
-                    <button id="apply-text-props" class="button">Apply</button>
-                `;
+<h4>Text Properties</h4>
+<label>Text Content:</label>
+<input type="text" id="text-content" value="${$element.find('.element-content').text()}">
+<label>Font Size:</label>
+<input type="number" id="font-size" value="16" min="8" max="72">
+<label>Font Color:</label>
+<input type="color" id="font-color" value="#000000">
+<label>Font Family:</label>
+<select id="font-family">
+    <option value="Arial">Arial</option>
+    <option value="Times New Roman">Times New Roman</option>
+    <option value="Helvetica">Helvetica</option>
+    <option value="Georgia">Georgia</option>
+</select>
+<button id="apply-text-props" class="button">Apply</button>
+`;
                 break;
+
             case 'image':
                 propertiesHtml = `
-                    <h4>Image Properties</h4>
-                    <label>Image URL:</label>
-                    <input type="url" id="image-url" placeholder="https://example.com/image.jpg">
-                    <label>Width:</label>
-                    <input type="number" id="image-width" value="100" min="10" max="500">
-                    <label>Height:</label>
-                    <input type="number" id="image-height" value="50" min="10" max="500">
-                    <button id="apply-image-props" class="button">Apply</button>
-                `;
+<h4>Image Properties</h4>
+<label>Image URL:</label>
+<input type="url" id="image-url" placeholder="https://example.com/image.jpg">
+<label>Width:</label>
+<input type="number" id="image-width" value="100" min="10" max="500">
+<label>Height:</label>
+<input type="number" id="image-height" value="50" min="10" max="500">
+<button id="apply-image-props" class="button">Apply</button>
+`;
                 break;
+
             default:
                 propertiesHtml = `
-                    <h4>${type.charAt(0).toUpperCase() + type.slice(1)} Properties</h4>
-                    <p>Properties for ${type} element</p>
-                `;
+<h4>${type.charAt(0).toUpperCase() + type.slice(1)} Properties</h4>
+<p>Properties for ${type} element</p>
+`;
         }
-
 
         $('#element-properties').html(propertiesHtml);
     }
@@ -361,8 +364,6 @@ jQuery(document).ready(function($) {
                 backgroundUrl: $('#certificate-canvas').data('background-url') || ''
             }
         };
-    }
-        
         return {
             elements: elements,
             canvas: {
@@ -372,71 +373,70 @@ jQuery(document).ready(function($) {
         };
     }
 
-
     // Preview template
     $('#preview-template').click(function() {
         let templateData = getTemplateData();
         // Open preview window
         let previewWindow = window.open('', 'preview', 'width=900,height=700');
-        
+
         // Create a simple HTML preview
         let previewHtml = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Certificate Preview</title>
-                <style>
-                    body { margin: 0; padding: 20px; }
-                    .preview-container { 
-                        width: ${templateData.canvas.width}px; 
-                        height: ${templateData.canvas.height}px; 
-                        margin: 0 auto;
-                        position: relative;
-                        border: 1px solid #ddd;
-                        background: white;
-                        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-                    }
-                    .preview-element {
-                        position: absolute;
-                        box-sizing: border-box;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Certificate Preview</h1>
-                <div class="preview-container" id="preview-canvas">
-                    <!-- Elements will be added here -->
-                </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button onclick="window.print()">Print Certificate</button>
-                    <button onclick="window.close()">Close</button>
-                </div>
-                <script>
-                    // Add elements to preview
-                    let elements = ${JSON.stringify(templateData.elements)};
-                    let container = document.getElementById('preview-canvas');
-                    
-                    elements.forEach(function(el) {
-                        let div = document.createElement('div');
-                        div.className = 'preview-element';
-                        div.innerHTML = el.content;
-                        div.style.left = el.position.x + 'px';
-                        div.style.top = el.position.y + 'px';
-                        div.style.width = el.size.width + 'px';
-                        div.style.height = el.size.height + 'px';
-                        
-                        // Apply styles
-                        Object.keys(el.styles).forEach(function(prop) {
-                            div.style[prop] = el.styles[prop];
-                        });
-                        
-                        container.appendChild(div);
-                    });
-                </script>
-            </body>
-            </html>
-        `;
-        
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Certificate Preview</title>
+    <style>
+        body { margin: 0; padding: 20px; }
+        .preview-container {
+            width: ${templateData.canvas.width}px;
+            height: ${templateData.canvas.height}px;
+            margin: 0 auto;
+            position: relative;
+            border: 1px solid #ddd;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .preview-element {
+            position: absolute;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>Certificate Preview</h1>
+    <div class="preview-container" id="preview-canvas">
+        <!-- Elements will be added here -->
+    </div>
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()">Print Certificate</button>
+        <button onclick="window.close()">Close</button>
+    </div>
+    <script>
+        // Add elements to preview
+        let elements = ${JSON.stringify(templateData.elements)};
+        let container = document.getElementById('preview-canvas');
+
+        elements.forEach(function(el) {
+            let div = document.createElement('div');
+            div.className = 'preview-element';
+            div.innerHTML = el.content;
+            div.style.left = el.position.x + 'px';
+            div.style.top = el.position.y + 'px';
+            div.style.width = el.size.width + 'px';
+            div.style.height = el.size.height + 'px';
+
+            // Apply styles
+            Object.keys(el.styles).forEach(function(prop) {
+                div.style[prop] = el.styles[prop];
+            });
+
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>
+`;
+
         // Write the preview HTML to the new window
         previewWindow.document.open();
         previewWindow.document.write(previewHtml);
@@ -482,7 +482,7 @@ jQuery(document).ready(function($) {
         $('.canvas-element').css('z-index', '10');
         $(this).css('z-index', '100');
     });
-    
+
     // Canvas background click to deselect
     $('#certificate-canvas').on('click', function(e) {
         if (e.target === this) {
