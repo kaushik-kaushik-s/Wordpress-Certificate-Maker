@@ -50,6 +50,15 @@ jQuery(document).ready(function($) {
         }
     });
 
+    // Add background image functionality
+    $('#set-background').click(function() {
+        let url = prompt('Enter background image URL:');
+        if (url) {
+            $('#certificate-canvas').css('background-image', 'url(' + url + ')');
+            $('#certificate-canvas').data('background-url', url);
+        }
+    });
+
     function addElementToCanvas(type, x, y) {
         elementCounter++;
         let elementId = 'element-' + elementCounter;
@@ -326,29 +335,33 @@ jQuery(document).ready(function($) {
 
     function getTemplateData() {
         let elements = [];
-        
         $('.canvas-element').each(function() {
             let $el = $(this);
             elements.push({
-                id: $el.attr('id'),
                 type: $el.data('type'),
-                content: $el.find('.element-content').html(),
-                position: {
-                    x: $el.position().left,
-                    y: $el.position().top
-                },
-                size: {
-                    width: $el.width(),
-                    height: $el.height()
-                },
+                content: $el.find('.content-editable').html(),
+                left: parseInt($el.css('left')),
+                top: parseInt($el.css('top')),
+                width: $el.width(),
+                height: $el.height(),
                 styles: {
-                    'font-size': $el.css('font-size'),
-                    'color': $el.css('color'),
-                    'font-family': $el.css('font-family'),
-                    'text-align': $el.css('text-align')
+                    fontSize: $el.css('font-size'),
+                    fontFamily: $el.css('font-family'),
+                    color: $el.css('color'),
+                    fontWeight: $el.css('font-weight'),
+                    textAlign: $el.css('text-align')
                 }
             });
         });
+        return {
+            elements: elements,
+            canvas: {
+                width: $('#certificate-canvas').width(),
+                height: $('#certificate-canvas').height(),
+                backgroundUrl: $('#certificate-canvas').data('background-url') || ''
+            }
+        };
+    }
         
         return {
             elements: elements,
@@ -431,46 +444,33 @@ jQuery(document).ready(function($) {
     });
 
     // Load template
-    $('#load-template').click(function() {
+    $('.load-template').click(function() {
         let templateId = $('#template-select').val();
         if (!templateId) return;
-        
+
         $.ajax({
-            url: ajaxurl,
+            url: ks_cert_admin_ajax.ajax_url,
             type: 'POST',
             data: {
                 action: 'load_certificate_template',
-                id: templateId,
-                nonce: ks_cert_admin_ajax.nonce
+                nonce: ks_cert_admin_ajax.nonce,
+                template_id: templateId
             },
             success: function(response) {
                 if (response.success) {
-                    // Clear existing elements
-                    $('.canvas-element').remove();
-                    
-                    // Load new elements
-                    response.data.elements.forEach(function(el) {
-                        addElementToCanvas(el.type, el.position.x, el.position.y);
-                        
-                        // Apply styles and content
-                        let $el = $('#' + el.id);
-                        if ($el.length) {
-                            $el.find('.element-content').html(el.content);
-                            $el.css(el.styles);
-                            $el.css({
-                                left: el.position.x + 'px',
-                                top: el.position.y + 'px',
-                                width: el.size.width + 'px',
-                                height: el.size.height + 'px'
-                            });
-                        }
+                    let template = response.data;
+                    $('#certificate-canvas').empty();
+                    template.elements.forEach(function(el) {
+                        addElementToCanvas(el.type, el);
                     });
-                } else {
-                    alert('Error loading template: ' + response.data);
+                    if (template.canvas.backgroundUrl) {
+                        $('#certificate-canvas').css('background-image', 'url(' + template.canvas.backgroundUrl + ')');
+                        $('#certificate-canvas').data('background-url', template.canvas.backgroundUrl);
+                    } else {
+                        $('#certificate-canvas').css('background-image', 'none');
+                        $('#certificate-canvas').removeData('background-url');
+                    }
                 }
-            },
-            error: function() {
-                alert('Error loading template. Please try again.');
             }
         });
     });
