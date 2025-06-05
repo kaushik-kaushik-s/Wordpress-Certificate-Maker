@@ -1,0 +1,296 @@
+/* Admin Dashboard Styles */
+.ks-cert-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.ks-cert-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.ks-cert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.ks-cert-card h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+/* Template Builder Styles */
+.ks-builder-toolbar {
+    background: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.ks-builder-toolbar input[type="text"] {
+    flex: 1;
+    max-width: 300px;
+}
+
+.ks-builder-container {
+    display: flex;
+    gap: 20px;
+    height: 600px;
+}
+
+.ks-builder-sidebar {
+    width: 250px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.ks-builder-sidebar h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    color: #333;
+}
+
+.ks-element-list {
+    margin-bottom: 20px;
+}
+
+.ks-element {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: move;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.ks-element:hover {
+    background: #e9ecef;
+    border-color: #007cba;
+}
+
+.ks-builder-canvas {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+#certificate-canvas {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #fff;
+    background-image:
+            radial-gradient(circle, #ddd 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.canvas-background {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #999;
+    font-size: 18px;
+    text-align: center;
+}
+
+.canvas-element {
+    position: absolute;
+    border: 2px dashed transparent;
+    min-width: 50px;
+    min-height: 30px;
+    cursor: move;
+    padding: 5px;
+}
+
+.canvas-element:hover {
+    border-color: #007cba;
+}
+
+.canvas-element.selected {
+    border-color: #007cba;
+    background: rgba(0, 124, 186, 0.1);
+}
+
+.element-controls {
+    position: absolute;
+    top: -30px;
+    right: 0;
+    display: none;
+    gap: 5px;
+}
+
+.canvas-element:hover .element-controls,
+.canvas-element.selected .element-controls {
+    display: flex;
+}
+
+.element-controls button {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.element-controls button:hover {
+    background: #005a87;
+}
+
+.delete-btn {
+    background: #dc3545 !important;
+}
+
+.delete-btn:hover {
+    background: #c82333 !important;
+}
+
+/* Element Properties Panel */
+#element-properties {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+#element-properties h4 {
+    margin-top: 0;
+    color: #333;
+}
+
+#element-properties label {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+#element-properties input,
+#element-properties select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#element-properties button {
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* Specific Element Styles */
+.text-element {
+    font-size: 16px;
+    color: #333;
+    font-family: Arial, sans-serif;
+}
+
+.image-element img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.signature-element {
+    font-style: italic;
+    color: #666;
+}
+
+.date-element {
+    font-weight: bold;
+    color: #333;
+}
+
+.qr-element .qr-placeholder {
+    width: 50px;
+    height: 50px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #666;
+}
+
+/* API Settings Styles */
+.ks-api-info {
+    background: #f9f9f9;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+.ks-api-info h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.ks-api-info code {
+    background: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.ks-api-info pre {
+    background: #f4f4f4;
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 14px;
+    border: 1px solid #ddd;
+}
+
+.ks-api-info pre code {
+    background: none;
+    padding: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .ks-builder-container {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .ks-builder-sidebar {
+        width: 100%;
+        height: auto;
+        margin-bottom: 20px;
+    }
+
+    .ks-builder-canvas {
+        height: 400px;
+    }
+
+    .ks-cert-dashboard {
+        grid-template-columns: 1fr;
+    }
+}
