@@ -17,6 +17,9 @@ if (!defined('ABSPATH')) {
 define('KS_CERT_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KS_CERT_PLUGIN_PATH', plugin_dir_path(__FILE__));
 
+// Include TCPDF library
+require_once(KS_CERT_PLUGIN_PATH . 'tcpdf/tcpdf.php');
+
 class KS_Certificate_Plugin {
 
     public function __construct() {
@@ -42,7 +45,6 @@ class KS_Certificate_Plugin {
 
         // Create certificates table
         $table_name = $wpdb->prefix . 'ks_certificates';
-
         $charset_collate = $wpdb->get_charset_collate();
 
         $sql = "CREATE TABLE $table_name (
@@ -97,7 +99,10 @@ class KS_Certificate_Plugin {
 
     public function admin_enqueue_scripts($hook) {
         if (strpos($hook, 'ks-certificate') !== false) {
-            wp_enqueue_script('ks-cert-admin', KS_CERT_PLUGIN_URL . 'js/admin.js', array('jquery'), '1.0.0', true);
+            wp_enqueue_script('jquery-ui-draggable');
+            wp_enqueue_script('jquery-ui-droppable');
+            wp_enqueue_script('jquery-ui-resizable');
+            wp_enqueue_script('ks-cert-admin', KS_CERT_PLUGIN_URL . 'js/admin.js', array('jquery', 'jquery-ui-draggable', 'jquery-ui-droppable', 'jquery-ui-resizable'), '1.0.0', true);
             wp_enqueue_style('ks-cert-admin', KS_CERT_PLUGIN_URL . 'css/admin.css', array(), '1.0.0');
             wp_localize_script('ks-cert-admin', 'ks_cert_admin_ajax', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
@@ -317,14 +322,14 @@ class KS_Certificate_Plugin {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ks_certificate_templates';
 
-        $template_name = sanitize_text_field($_POST['template_name']);
-        $template_data = wp_kses_post($_POST['template_data']);
+        $template_name = sanitize_text_field($_POST['name']);
+        $template_data = wp_unslash($_POST['data']); // JSON data, so no wp_kses_post
 
         $result = $wpdb->insert(
             $table_name,
             array(
                 'template_name' => $template_name,
-                'template_data' => $template_data
+                'template_data' => wp_json_encode($template_data) // Ensure proper JSON encoding
             )
         );
 
@@ -428,11 +433,6 @@ class KS_Certificate_Plugin {
     }
 
     private function generate_certificate_pdf($cert_id, $recipient_name, $course_name, $issue_date, $template_data, $custom_fields = array()) {
-        // This would use a PDF library like TCPDF or mPDF
-        // For now, we'll create a simple HTML-to-PDF conversion
-
-        require_once('tcpdf/tcpdf.php');
-
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
         $pdf->SetCreator('Kaushik Sannidhi Certificate Plugin');
@@ -444,24 +444,41 @@ class KS_Certificate_Plugin {
 
         $pdf->AddPage();
 
-        // Process template data and replace placeholders
-        $html = $template_data;
-        $html = str_replace('{{recipient_name}}', $recipient_name, $html);
-        $html = str_replace('{{course_name}}', $course_name, $html);
-        $html = str_replace('{{issue_date}}', $issue_date, $html);
-        $html = str_replace('{{certificate_id}}', $cert_id, $html);
+        // Decode template data
+        $template = json_decode($template_data, true);
 
-        // Replace custom fields
-        if (!empty($custom_fields['custom_fields'])) {
-            foreach ($custom_fields['custom_fields'] as $key => $value) {
-                $html = str_replace('{{' . $key . '}}', $value, $html);
+        // Build HTML from template data
+        $html = '<div style="position: relative; width: ' . $template['canvas']['width'] . 'px; height: ' . $template['canvas']['height'] . 'px;">';
+        foreach ($template['elements'] as $element) {
+            $styles = 'position: absolute; left: ' . $element['position']['x'] . 'px; top: ' . $element['position']['y'] . 'px; width: ' . $element['size']['width'] . 'px; height: ' . $element['size']['height'] . 'px;';
+            foreach ($element['styles'] as $key => $value) {
+                if ($value) {
+                    $styles .= $key . ': ' . $value . ';';
+                }
             }
+            $content = $element['content'];
+            // Replace placeholders
+            $content = str_replace('{{recipient_name}}', $recipient_name, $content);
+            $content = str_replace('{{course_name}}', $course_name, $content);
+            $content = str_replace('{{issue_date}}', $issue_date, $content);
+            $content = str_replace('{{certificate_id}}', $cert_id, $content);
+            // Add custom fields
+            if (!empty($custom_fields['custom_fields'])) {
+                foreach ($custom_fields['custom_fields'] as $key => $value) {
+                    $content = str_replace('{{' . $key . '}}', $value, $content);
+                }
+            }
+            $html .= '<div style="' . $styles . '">' . $content . '</div>';
         }
+        $html .= '</div>';
 
         $pdf->writeHTML($html, true, false, true, false, '');
 
         $upload_dir = wp_upload_dir();
         $cert_dir = $upload_dir['basedir'] . '/certificates';
+        if (!file_exists($cert_dir)) {
+            wp_mkdir_p($cert_dir);
+        }
         $filename = 'cert-' . strtolower($cert_id) . '.pdf';
         $filepath = $cert_dir . '/' . $filename;
 
@@ -473,8 +490,4 @@ class KS_Certificate_Plugin {
 
 // Initialize the plugin
 new KS_Certificate_Plugin();
-
-// Include TCPDF library (you would need to include this separately)
-// You can download TCPDF from https://tcpdf.org/
-
 ?>
