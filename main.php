@@ -30,6 +30,7 @@ class KS_Certificate_Plugin {
         add_action('wp_ajax_save_certificate_template', array($this, 'save_certificate_template'));
         add_action('wp_ajax_verify_certificate', array($this, 'verify_certificate'));
         add_action('wp_ajax_nopriv_verify_certificate', array($this, 'verify_certificate'));
+        add_action('wp_ajax_regenerate_api_key', array($this, 'regenerate_api_key'));
         add_action('rest_api_init', array($this, 'register_rest_routes'));
         add_shortcode('certificate_verification', array($this, 'certificate_verification_shortcode'));
         register_activation_hook(__FILE__, array($this, 'activate'));
@@ -258,8 +259,19 @@ class KS_Certificate_Plugin {
     }
 
     public function api_settings_page() {
+        // Handle form submission
+        if (isset($_POST['submit']) && wp_verify_nonce($_POST['ks_cert_api_nonce'], 'ks_cert_api_settings')) {
+            if (isset($_POST['regenerate_key'])) {
+                $api_key = wp_generate_password(32, false);
+                update_option('ks_cert_api_key', $api_key);
+                echo '<div class="notice notice-success"><p>API Key regenerated successfully!</p></div>';
+            }
+        }
+
         $api_key = get_option('ks_cert_api_key', wp_generate_password(32, false));
-        update_option('ks_cert_api_key', $api_key);
+        if (!get_option('ks_cert_api_key')) {
+            update_option('ks_cert_api_key', $api_key);
+        }
 
         ?>
         <div class="wrap">
@@ -291,10 +303,27 @@ class KS_Certificate_Plugin {
     "verification_url": "https://yoursite.com/certificate-verification/?id=CERT-123456"
 }</code></pre>
 
-                <button id="regenerate-api-key" class="button">Regenerate API Key</button>
+                <form method="post">
+                    <?php wp_nonce_field('ks_cert_api_settings', 'ks_cert_api_nonce'); ?>
+                    <input type="hidden" name="regenerate_key" value="1">
+                    <button type="submit" name="submit" class="button">Regenerate API Key</button>
+                </form>
             </div>
         </div>
         <?php
+    }
+
+    public function regenerate_api_key() {
+        check_ajax_referer('ks_cert_admin_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        $new_key = wp_generate_password(32, false);
+        update_option('ks_cert_api_key', $new_key);
+
+        wp_send_json_success(array('new_key' => $new_key));
     }
 
     public function certificate_verification_shortcode($atts) {
@@ -323,13 +352,23 @@ class KS_Certificate_Plugin {
         $table_name = $wpdb->prefix . 'ks_certificate_templates';
 
         $template_name = sanitize_text_field($_POST['name']);
-        $template_data = wp_unslash($_POST['data']); // JSON data, so no wp_kses_post
+        $template_data = $_POST['data']; // This should be JSON data
+
+        // Validate JSON
+        if (is_string($template_data)) {
+            $decoded = json_decode($template_data, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                wp_send_json_error(array('message' => 'Invalid JSON data'));
+                return;
+            }
+            $template_data = $decoded;
+        }
 
         $result = $wpdb->insert(
             $table_name,
             array(
                 'template_name' => $template_name,
-                'template_data' => wp_json_encode($template_data) // Ensure proper JSON encoding
+                'template_data' => wp_json_encode($template_data)
             )
         );
 
@@ -341,6 +380,8 @@ class KS_Certificate_Plugin {
     }
 
     public function verify_certificate() {
+        check_ajax_referer('ks_cert_nonce', 'nonce');
+        
         $cert_id = sanitize_text_field($_POST['certificate_id']);
 
         global $wpdb;
@@ -410,9 +451,13 @@ class KS_Certificate_Plugin {
         // Generate PDF
         $pdf_path = $this->generate_certificate_pdf($certificate_id, $recipient_name, $course_name, $issue_date, $template->template_data, $params);
 
+        if (!$pdf_path) {
+            return new WP_Error('pdf_generation_failed', 'Failed to generate PDF', array('status' => 500));
+        }
+
         // Save to database
         $certificates_table = $wpdb->prefix . 'ks_certificates';
-        $wpdb->insert(
+        $result = $wpdb->insert(
             $certificates_table,
             array(
                 'certificate_id' => $certificate_id,
@@ -424,6 +469,10 @@ class KS_Certificate_Plugin {
             )
         );
 
+        if (!$result) {
+            return new WP_Error('database_error', 'Failed to save certificate to database', array('status' => 500));
+        }
+
         return rest_ensure_response(array(
             'success' => true,
             'certificate_id' => $certificate_id,
@@ -433,58 +482,144 @@ class KS_Certificate_Plugin {
     }
 
     private function generate_certificate_pdf($cert_id, $recipient_name, $course_name, $issue_date, $template_data, $custom_fields = array()) {
-        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        try {
+            $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
-        $pdf->SetCreator('Kaushik Sannidhi Certificate Plugin');
-        $pdf->SetTitle('Certificate - ' . $recipient_name);
-        $pdf->SetSubject('Certificate');
+            $pdf->SetCreator('Kaushik Sannidhi Certificate Plugin');
+            $pdf->SetTitle('Certificate - ' . $recipient_name);
+            $pdf->SetSubject('Certificate');
 
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
+            $pdf->setPrintHeader(false);
+            $pdf->setPrintFooter(false);
 
-        $pdf->AddPage();
+            $pdf->AddPage();
 
-        // Decode template data
-        $template = json_decode($template_data, true);
-
-        // Build HTML from template data
-        $html = '<div style="position: relative; width: ' . $template['canvas']['width'] . 'px; height: ' . $template['canvas']['height'] . 'px;">';
-        foreach ($template['elements'] as $element) {
-            $styles = 'position: absolute; left: ' . $element['position']['x'] . 'px; top: ' . $element['position']['y'] . 'px; width: ' . $element['size']['width'] . 'px; height: ' . $element['size']['height'] . 'px;';
-            foreach ($element['styles'] as $key => $value) {
-                if ($value) {
-                    $styles .= $key . ': ' . $value . ';';
-                }
+            // Decode template data
+            $template = json_decode($template_data, true);
+            
+            if (!$template || !isset($template['elements'])) {
+                // Fallback to basic certificate if template parsing fails
+                $this->generate_basic_certificate_pdf($pdf, $cert_id, $recipient_name, $course_name, $issue_date);
+            } else {
+                // Use template data to build certificate
+                $this->build_certificate_from_template($pdf, $template, $cert_id, $recipient_name, $course_name, $issue_date, $custom_fields);
             }
-            $content = $element['content'];
-            // Replace placeholders
-            $content = str_replace('{{recipient_name}}', $recipient_name, $content);
-            $content = str_replace('{{course_name}}', $course_name, $content);
-            $content = str_replace('{{issue_date}}', $issue_date, $content);
-            $content = str_replace('{{certificate_id}}', $cert_id, $content);
-            // Add custom fields
-            if (!empty($custom_fields['custom_fields'])) {
-                foreach ($custom_fields['custom_fields'] as $key => $value) {
-                    $content = str_replace('{{' . $key . '}}', $value, $content);
-                }
+
+            // Save PDF file
+            $upload_dir = wp_upload_dir();
+            $cert_dir = $upload_dir['basedir'] . '/certificates';
+            if (!file_exists($cert_dir)) {
+                wp_mkdir_p($cert_dir);
             }
-            $html .= '<div style="' . $styles . '">' . $content . '</div>';
+            $filename = 'cert-' . strtolower($cert_id) . '.pdf';
+            $filepath = $cert_dir . '/' . $filename;
+
+            $pdf->Output($filepath, 'F');
+
+            return $filepath;
+
+        } catch (Exception $e) {
+            error_log('Certificate PDF generation error: ' . $e->getMessage());
+            return false;
         }
+    }
+
+    private function generate_basic_certificate_pdf($pdf, $cert_id, $recipient_name, $course_name, $issue_date) {
+        // Basic certificate HTML template
+        $html = '
+        <div style="text-align: center; padding: 50px;">
+            <h1 style="font-size: 36px; color: #2c3e50; margin-bottom: 30px;">CERTIFICATE OF COMPLETION</h1>
+            <p style="font-size: 18px; margin-bottom: 40px;">This is to certify that</p>
+            <h2 style="font-size: 32px; color: #3498db; margin-bottom: 40px; text-decoration: underline;">' . esc_html($recipient_name) . '</h2>
+            <p style="font-size: 18px; margin-bottom: 20px;">has successfully completed the course</p>
+            <h3 style="font-size: 24px; color: #e74c3c; margin-bottom: 40px;">' . esc_html($course_name) . '</h3>
+            <p style="font-size: 16px; margin-bottom: 60px;">on ' . esc_html($issue_date) . '</p>
+            <div style="margin-top: 80px;">
+                <p style="font-size: 12px; color: #7f8c8d;">Certificate ID: ' . esc_html($cert_id) . '</p>
+            </div>
+        </div>';
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+    }
+
+    private function build_certificate_from_template($pdf, $template, $cert_id, $recipient_name, $course_name, $issue_date, $custom_fields) {
+        // Set canvas dimensions if available
+        $canvas_width = isset($template['canvas']['width']) ? $template['canvas']['width'] : 794;
+        $canvas_height = isset($template['canvas']['height']) ? $template['canvas']['height'] : 1123;
+
+        // Start building HTML
+        $html = '<div style="position: relative; width: ' . $canvas_width . 'px; height: ' . $canvas_height . 'px;">';
+
+        // Add background if specified
+        if (isset($template['canvas']['backgroundUrl']) && !empty($template['canvas']['backgroundUrl'])) {
+            $html .= '<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url(' . esc_url($template['canvas']['backgroundUrl']) . '); background-size: cover; background-position: center;"></div>';
+        }
+
+        // Process each element
+        foreach ($template['elements'] as $element) {
+            $html .= $this->render_template_element($element, $cert_id, $recipient_name, $course_name, $issue_date, $custom_fields);
+        }
+
         $html .= '</div>';
 
         $pdf->writeHTML($html, true, false, true, false, '');
+    }
 
-        $upload_dir = wp_upload_dir();
-        $cert_dir = $upload_dir['basedir'] . '/certificates';
-        if (!file_exists($cert_dir)) {
-            wp_mkdir_p($cert_dir);
+    private function render_template_element($element, $cert_id, $recipient_name, $course_name, $issue_date, $custom_fields) {
+        // Default values
+        $type = isset($element['type']) ? $element['type'] : 'text';
+        $content = isset($element['content']) ? $element['content'] : '';
+        $left = isset($element['left']) ? $element['left'] : 0;
+        $top = isset($element['top']) ? $element['top'] : 0;
+        $width = isset($element['width']) ? $element['width'] : 100;
+        $height = isset($element['height']) ? $element['height'] : 50;
+
+        // Build styles
+        $styles = 'position: absolute; left: ' . $left . 'px; top: ' . $top . 'px; width: ' . $width . 'px; height: ' . $height . 'px;';
+        
+        if (isset($element['styles'])) {
+            foreach ($element['styles'] as $key => $value) {
+                if ($value && $value !== 'initial' && $value !== 'auto') {
+                    $styles .= $key . ': ' . $value . ';';
+                }
+            }
         }
-        $filename = 'cert-' . strtolower($cert_id) . '.pdf';
-        $filepath = $cert_dir . '/' . $filename;
 
-        $pdf->Output($filepath, 'F');
+        // Replace placeholders in content
+        $content = str_replace('{{recipient_name}}', $recipient_name, $content);
+        $content = str_replace('{{course_name}}', $course_name, $content);
+        $content = str_replace('{{issue_date}}', $issue_date, $content);
+        $content = str_replace('{{certificate_id}}', $cert_id, $content);
 
-        return $filepath;
+        // Replace custom fields
+        if (isset($custom_fields['custom_fields']) && is_array($custom_fields['custom_fields'])) {
+            foreach ($custom_fields['custom_fields'] as $key => $value) {
+                $content = str_replace('{{' . $key . '}}', $value, $content);
+            }
+        }
+
+        // Handle different element types
+        switch ($type) {
+            case 'image':
+                if (strpos($content, 'src=') !== false) {
+                    // Content already contains img tag
+                    return '<div style="' . $styles . '">' . $content . '</div>';
+                } else {
+                    // Treat content as image URL
+                    return '<div style="' . $styles . '"><img src="' . esc_url($content) . '" style="width: 100%; height: 100%; object-fit: contain;" /></div>';
+                }
+                break;
+
+            case 'qr':
+                // For QR codes, generate a simple placeholder or actual QR if library available
+                $qr_content = 'QR: ' . $cert_id;
+                return '<div style="' . $styles . ' border: 1px solid #ccc; text-align: center; display: flex; align-items: center; justify-content: center; font-size: 10px;">' . $qr_content . '</div>';
+                break;
+
+            default:
+                // Text and other elements
+                return '<div style="' . $styles . '">' . $content . '</div>';
+        }
     }
 }
 
